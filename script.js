@@ -33,6 +33,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+auth.useDeviceLanguage();
+auth.settings.appVerificationDisabledForTesting = true;
 
 // UI Elements
 const authSection = document.getElementById("auth-section");
@@ -204,3 +206,5 @@ document.querySelectorAll('input').forEach(input => {
     }
   });
 });
+
+// Only for testing!
