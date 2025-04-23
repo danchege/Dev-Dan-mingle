@@ -36,6 +36,16 @@ const db = getFirestore(app);
 auth.useDeviceLanguage();
 auth.settings.appVerificationDisabledForTesting = true;
 
+// Firebase Security Rules
+const securityRules = {
+  "rules": {
+    "messages": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+};
+
 // UI Elements
 const authSection = document.getElementById("auth-section");
 const chatSection = document.getElementById("chat-section");
