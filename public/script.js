@@ -6,7 +6,8 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   onAuthStateChanged, 
-  signOut 
+  signOut, 
+  updateProfile 
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import { 
   getFirestore, 
@@ -15,7 +16,8 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
-  serverTimestamp 
+  serverTimestamp,
+  enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // Firebase Config
@@ -35,6 +37,15 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 auth.useDeviceLanguage();
 auth.settings.appVerificationDisabledForTesting = true;
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch(err => {
+  if (err.code === 'failed-precondition') {
+    console.error("Multiple tabs open, persistence can only be enabled in one tab.");
+  } else if (err.code === 'unimplemented') {
+    console.error("The current browser does not support offline persistence.");
+  }
+});
 
 // Firebase Security Rules
 const securityRules = {
@@ -59,13 +70,22 @@ const userStatus = document.getElementById("user-status");
 function formatTimestamp(timestamp) {
   if (!timestamp) return 'Just now';
   const date = timestamp.toDate();
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 // Google Sign-In
 document.getElementById("google-signin").addEventListener("click", () => {
   const provider = new GoogleAuthProvider();
   signInWithPopup(auth, provider)
+    .then(result => {
+      const user = result.user;
+      if (!user.displayName) {
+        const displayName = prompt("Enter a display name:");
+        if (displayName) {
+          updateProfile(user, { displayName });
+        }
+      }
+    })
     .catch(error => {
       showToast(error.message, 'error');
     });
@@ -78,6 +98,15 @@ document.getElementById("email-login-form").addEventListener("submit", e => {
   const pass = document.getElementById("password").value;
   
   signInWithEmailAndPassword(auth, email, pass)
+    .then(userCredential => {
+      const user = userCredential.user;
+      if (!user.displayName) {
+        const displayName = prompt("Enter a display name:");
+        if (displayName) {
+          updateProfile(user, { displayName });
+        }
+      }
+    })
     .catch(error => {
       showToast(error.message, 'error');
     });
@@ -88,7 +117,7 @@ onAuthStateChanged(auth, user => {
   if (user) {
     authSection.style.display = "none";
     chatSection.style.display = "block";
-    userStatus.textContent = user.email;
+    userStatus.textContent = user.displayName || user.email;
     listenForMessages();
     messageInput.focus();
   } else {
@@ -108,7 +137,7 @@ messageForm.addEventListener("submit", async e => {
     await addDoc(collection(db, "messages"), {
       text: msg,
       uid: auth.currentUser.uid,
-      email: auth.currentUser.email,
+      displayName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
       timestamp: serverTimestamp()
     });
     messageInput.value = "";
@@ -127,7 +156,7 @@ function listenForMessages() {
       const div = document.createElement("div");
       div.className = msg.uid === auth.currentUser.uid ? "my-msg" : "other-msg";
       
-      const displayName = msg.email.split('@')[0];
+      const displayName = msg.displayName || "Anonymous";
       const timestamp = formatTimestamp(msg.timestamp);
       
       div.innerHTML = `
