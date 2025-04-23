@@ -119,13 +119,14 @@ async function loadAllUsers(searchTerm = '') {
   });
 }
 
-// Load users in the public chat
+// Load contacts and add event listeners for private chats
 async function loadContacts() {
-  contactsList.innerHTML = '';
+  const contactsList = document.getElementById("contacts-list");
+  contactsList.innerHTML = ''; // Clear the list
 
   // Add public chat option
   const publicChatItem = document.createElement('div');
-  publicChatItem.className = `contact-item ${currentChat.type === 'public' ? 'active' : ''}`;
+  publicChatItem.className = `contact-item ${currentChat?.type === 'public' ? 'active' : ''}`;
   publicChatItem.innerHTML = `
     <div class="contact-avatar"><i class="fas fa-users"></i></div>
     <div class="contact-name">Public Chat</div>
@@ -189,6 +190,7 @@ async function addContact(contact) {
 
 // Update the chat header
 function updateChatHeader() {
+  const currentChatInfo = document.getElementById("current-chat-info");
   if (currentChat.type === 'public') {
     currentChatInfo.innerHTML = `
       <div class="contact-avatar"><i class="fas fa-users"></i></div>
@@ -204,6 +206,7 @@ function updateChatHeader() {
 
 // Load messages for the current chat
 function loadMessages() {
+  const chatWindow = document.getElementById("chat-window");
   if (window.messageListener) {
     window.messageListener();
   }
@@ -237,8 +240,9 @@ function loadMessages() {
 }
 
 // Send message
-messageForm.addEventListener("submit", async e => {
+document.getElementById("message-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const messageInput = document.getElementById("message-input");
   const msg = messageInput.value.trim();
   if (msg === "") return;
 
@@ -255,10 +259,10 @@ messageForm.addEventListener("submit", async e => {
     } else {
       await addDoc(collection(db, "privateChats", currentChat.id, "messages"), messageData);
     }
-    
+
     messageInput.value = "";
   } catch (error) {
-    showToast("Failed to send message", 'error');
+    console.error("Failed to send message:", error);
   }
 });
 
@@ -277,8 +281,17 @@ async function updateUserStatus(online) {
 }
 
 // Auth State Change
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
+    const usersRef = collection(db, "users");
+    const userDoc = doc(usersRef, user.uid);
+    await setDoc(userDoc, {
+      uid: user.uid,
+      displayName: user.displayName || user.email.split('@')[0],
+      email: user.email
+    }, { merge: true }); // Merge to avoid overwriting existing data
+    loadContacts(); // Load contacts when user logs in
+
     // Update user status to online
     await updateUserStatus(true);
     
@@ -287,8 +300,7 @@ onAuthStateChanged(auth, async user => {
     chatSection.style.display = "block";
     userStatus.textContent = user.displayName || user.email;
     
-    // Load contacts and messages
-    loadContacts();
+    // Load messages
     loadMessages();
     messageInput.focus();
   } else {
