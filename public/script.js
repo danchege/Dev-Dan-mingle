@@ -150,7 +150,11 @@ messageForm.addEventListener("submit", async e => {
 function listenForMessages() {
   const q = query(collection(db, "messages"), orderBy("timestamp"));
   onSnapshot(q, snapshot => {
-    chatWindow.innerHTML = "";
+    console.log("Messages snapshot size:", snapshot.size);
+    snapshot.forEach(doc => {
+      console.log("Message data:", doc.data());
+    });
+    chatWindow.innerHTML = ""; // Clear the chat window
     snapshot.forEach(doc => {
       const msg = doc.data();
       const div = document.createElement("div");
@@ -166,7 +170,7 @@ function listenForMessages() {
       
       chatWindow.appendChild(div);
     });
-    // Auto-scroll to bottom
+    // Auto-scroll to the bottom
     chatWindow.scrollTop = chatWindow.scrollHeight;
   });
 }
