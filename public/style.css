@@ -527,9 +527,21 @@ h1 {
   .user-item:hover {
     background-color: rgba(255, 255, 255, 0.1);
   }
-  
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
+
+  .app-footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #062646;
+    color: #d9dfe4;
+    font-size: 14px;
+    border-top: 1px solid #e9ecef;
+    position: relative; /* Change from fixed to relative */
+    width: 100%;
+    margin-top: auto; /* Push the footer to the bottom of the content */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
     .chat-container {
       height: 65vh;
     }
@@ -562,3 +574,4 @@ h1 {
       display: none !important;
     }
   }
+
